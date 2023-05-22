@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package user;
+option go_package = "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/user";
+
+
+message User{
+    string id = 1;
+    string name = 2;
+    string email = 3;
+}

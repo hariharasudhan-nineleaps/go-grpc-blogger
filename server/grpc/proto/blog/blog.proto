@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package blog;
+option go_package = "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/blog";
+
+import "server/grpc/proto/user/user.proto";
+
+enum BlogCategory{
+    TECH = 0;
+    ENTERTAINMENT = 1;
+    FASHION = 2;
+    EDUCATION = 3;
+    SPORTS = 4;
+};
+
+message CreateBlogRequest{
+    string title = 2;
+    string description = 3;
+    BlogCategory category = 4; 
+    repeated string tags = 5;
+}
+
+
+message CreateBlogResponse{
+    string id = 1;
+    string title = 2;
+    string description = 3;
+    BlogCategory category = 4; 
+    repeated string tags = 5;
+    user.User author = 6;
+}
+
+service BlogService{
+    rpc CreateBlog(CreateBlogRequest) returns (CreateBlogResponse){}
+}
