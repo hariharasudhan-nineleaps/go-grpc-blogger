@@ -25,7 +25,7 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.User{}, &models.Blog{})
 
 	// listen to incoming requests
 	lis, err := net.Listen("tcp", "localhost:3000")
@@ -40,7 +40,7 @@ func main() {
 
 	// register service
 	auth.RegisterAuthServiceServer(grpcServer, &authServerHandler.AuthServer{DB: db})
-	blog.RegisterBlogServiceServer(grpcServer, &blogServerHandler.BlogServer{})
+	blog.RegisterBlogServiceServer(grpcServer, &blogServerHandler.BlogServer{DB: db})
 	reflection.Register(grpcServer)
 
 	// start server
