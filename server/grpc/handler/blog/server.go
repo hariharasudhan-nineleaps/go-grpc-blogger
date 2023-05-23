@@ -3,12 +3,12 @@ package blog
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/user"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
 	"gorm.io/gorm"
 )
 
@@ -18,16 +18,18 @@ type BlogServer struct {
 }
 
 func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlogRequest) (*blog.CreateBlogResponse, error) {
-	userId := ctx.Value("userId")
-	if userId == nil {
-		return nil, fmt.Errorf("Permission denied.")
+	userId, ok := ctx.Value("userId").(string)
+
+	if !ok {
+		return nil, fmt.Errorf("Invalid userId")
 	}
 
 	blogToSave := &models.Blog{
+		ID:          utils.ShortId(),
 		Title:       cbRequest.Title,
 		Description: cbRequest.Description,
 		Tags:        strings.Join(cbRequest.Tags, ","),
-		AuthorId:    fmt.Sprintf("%v", userId),
+		AuthorId:    userId,
 		Category:    cbRequest.Category.String(),
 	}
 
@@ -36,9 +38,8 @@ func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlog
 		return nil, result.Error
 	}
 
-	authorId, _ := strconv.ParseInt(blogToSave.AuthorId, 0, 8)
 	var author models.User
-	author.ID = uint(authorId)
+	author.ID = blogToSave.AuthorId
 
 	authorResult := bs.DB.First(&author)
 	if authorResult.Error != nil {
@@ -46,7 +47,7 @@ func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlog
 	}
 
 	return &blog.CreateBlogResponse{
-		Id:          fmt.Sprint(blogToSave.ID),
+		Id:          blogToSave.ID,
 		Title:       blogToSave.Title,
 		Description: blogToSave.Description,
 		Category:    cbRequest.Category,
@@ -57,4 +58,15 @@ func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlog
 			Email: author.Email,
 		},
 	}, nil
+}
+
+func (bs *BlogServer) GetUserBlogs(ctx context.Context, gubRequest *blog.UserBlogRequest) (*blog.UserBlogResponse, error) {
+	userId, ok := ctx.Value("userId").(string)
+	if !ok {
+		return nil, fmt.Errorf("Invalid userId")
+	}
+
+	fmt.Print(userId)
+
+	return nil, fmt.Errorf("test")
 }

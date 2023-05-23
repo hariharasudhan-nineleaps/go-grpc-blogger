@@ -3,7 +3,6 @@ package auth
 import (
 	context "context"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 
@@ -31,6 +30,7 @@ func buildUser(email string, plainPassword string) models.User {
 	}
 
 	return models.User{
+		ID:       utils.ShortId(),
 		Email:    email,
 		Name:     getNameFromEmail(email),
 		Password: password,
@@ -68,7 +68,7 @@ func (a *AuthServer) Login(ctx context.Context, authRequest *auth.AuthRequest) (
 	}
 
 	return &auth.AuthResponse{
-		Id:          fmt.Sprintf("%v", dbUser.ID),
+		Id:          dbUser.ID,
 		AccessToken: token,
 		Name:        dbUser.Name,
 		Email:       dbUser.Email,

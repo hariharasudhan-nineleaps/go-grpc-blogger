@@ -55,7 +55,7 @@ func UnaryAuthInterceptor(
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "Unauthenticated -> Invalid token (userId)!")
 	}
-	ctx = context.WithValue(ctx, "userId", userId)
+	ctx = context.WithValue(ctx, "userId", userId.(string))
 
 	return handler(ctx, req)
 }

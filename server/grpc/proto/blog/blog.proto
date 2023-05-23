@@ -20,7 +20,6 @@ message CreateBlogRequest{
     repeated string tags = 5;
 }
 
-
 message CreateBlogResponse{
     string id = 1;
     string title = 2;
@@ -30,6 +29,33 @@ message CreateBlogResponse{
     user.User author = 6;
 }
 
+message UserBlog{
+    string id = 1;
+    string title = 2;
+    string description = 3;
+    BlogCategory category = 4; 
+    repeated string tags = 5;
+    user.User author = 6;
+}
+
+message UserBlogResponseMetadata{
+    uint32 total = 1;
+    optional string prev = 2;
+    optional string next = 3;
+}
+
+message UserBlogRequest{
+    optional uint32 limit = 1;
+    optional string offset = 2; 
+}
+
+message UserBlogResponse{
+    UserBlogResponseMetadata metadata = 1;
+    repeated UserBlog blogs = 2;
+}
+
+
 service BlogService{
     rpc CreateBlog(CreateBlogRequest) returns (CreateBlogResponse){}
+    rpc GetUserBlogs(UserBlogRequest) returns (UserBlogResponse){}
 }
