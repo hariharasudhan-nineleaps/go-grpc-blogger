@@ -9,6 +9,7 @@ import (
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
@@ -66,7 +67,24 @@ func (bs *BlogServer) GetUserBlogs(ctx context.Context, gubRequest *blog.UserBlo
 		return nil, fmt.Errorf("Invalid userId")
 	}
 
-	fmt.Print(userId)
+	var blogs []models.Blog
+	bs.DB.Where(&models.Blog{AuthorId: userId}).Find(&blogs)
 
-	return nil, fmt.Errorf("test")
+	var resBlogs []*blog.UserBlog
+
+	for _, blogItem := range blogs {
+		resBlogs = append(resBlogs, &blog.UserBlog{
+			Id:          blogItem.ID,
+			Title:       blogItem.Title,
+			Description: blogItem.Description,
+			Category:    blog.BlogCategory(blog.BlogCategory_value[blogItem.Category]),
+			Tags:        strings.Split(blogItem.Tags, ","),
+			CreatedAt:   timestamppb.New(blogItem.CreatedAt),
+		})
+	}
+
+	return &blog.UserBlogResponse{
+		Metadata: &blog.UserBlogResponseMetadata{Total: uint32(len(blogs))},
+		Blogs:    resBlogs,
+	}, nil
 }

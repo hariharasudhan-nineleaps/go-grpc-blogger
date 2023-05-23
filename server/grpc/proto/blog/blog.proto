@@ -3,6 +3,7 @@ syntax = "proto3";
 package blog;
 option go_package = "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/blog";
 
+import "google/protobuf/timestamp.proto";
 import "server/grpc/proto/user/user.proto";
 
 enum BlogCategory{
@@ -35,7 +36,7 @@ message UserBlog{
     string description = 3;
     BlogCategory category = 4; 
     repeated string tags = 5;
-    user.User author = 6;
+    google.protobuf.Timestamp created_at = 6;
 }
 
 message UserBlogResponseMetadata{
