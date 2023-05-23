@@ -88,3 +88,28 @@ func (bs *BlogServer) GetUserBlogs(ctx context.Context, gubRequest *blog.UserBlo
 		Blogs:    resBlogs,
 	}, nil
 }
+
+func (bs *BlogServer) GetUserBlog(ctx context.Context, gubRequest *blog.GetUserBlogRequest) (*blog.UserBlog, error) {
+	_, ok := ctx.Value("userId").(string)
+	if !ok {
+		return nil, fmt.Errorf("Invalid userId")
+	}
+
+	var blogItem models.Blog
+	blogId := gubRequest.BlogId
+	blogItem.ID = blogId
+	res := bs.DB.First(&blogItem)
+
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("Invalid blog Id %v", blogId)
+	}
+
+	return &blog.UserBlog{
+		Id:          blogItem.ID,
+		Title:       blogItem.Title,
+		Description: blogItem.Description,
+		Category:    blog.BlogCategory(blog.BlogCategory_value[blogItem.Category]),
+		Tags:        strings.Split(blogItem.Tags, ","),
+		CreatedAt:   timestamppb.New(blogItem.CreatedAt),
+	}, nil
+}

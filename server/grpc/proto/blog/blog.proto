@@ -55,8 +55,13 @@ message UserBlogResponse{
     repeated UserBlog blogs = 2;
 }
 
+message GetUserBlogRequest{
+    string blogId  = 1;
+}
+
 
 service BlogService{
     rpc CreateBlog(CreateBlogRequest) returns (CreateBlogResponse){}
     rpc GetUserBlogs(UserBlogRequest) returns (UserBlogResponse){}
+    rpc GetUserBlog(GetUserBlogRequest) returns (UserBlog){}
 }
