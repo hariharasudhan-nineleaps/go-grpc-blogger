@@ -5,10 +5,12 @@ import (
 	"net"
 
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/comment"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/handlers"
+	interceptors "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/models"
-	interceptor "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/interceptor"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -33,11 +35,20 @@ func main() {
 
 	// server create
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(
-		interceptor.UnaryAuthInterceptor,
+		interceptors.UnaryAuthInterceptor,
 	))
 
+	// user grpc client
+	conn, err := grpc.Dial("localhost:3001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Unable to connect user service %v", err)
+	}
+	defer conn.Close()
+
+	userServiceClient := user.NewUserServiceClient(conn)
+
 	// register service
-	comment.RegisterCommentServiceServer(grpcServer, &handlers.CommentServer{DB: db})
+	comment.RegisterCommentServiceServer(grpcServer, &handlers.CommentServer{DB: db, UserServiceClient: userServiceClient})
 	reflection.Register(grpcServer)
 
 	// start server

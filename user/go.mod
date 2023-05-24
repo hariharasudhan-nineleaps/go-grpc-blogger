@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.0.0
-	github.com/hariharasudhan-nineleaps/blogger-proto v0.1.0
+	github.com/hariharasudhan-nineleaps/blogger-proto v0.1.1
 	github.com/hariharasudhan-nineleaps/go-grpc-blogger v0.0.0-20230524113109-df1f412bde2d
 	google.golang.org/grpc v1.55.0
 	gorm.io/driver/sqlite v1.5.1

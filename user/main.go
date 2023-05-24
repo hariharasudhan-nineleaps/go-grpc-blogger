@@ -4,9 +4,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/auth"
-	interceptor "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/interceptor"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/handlers"
+	interceptors "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/models"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -33,11 +33,11 @@ func main() {
 
 	// server create
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(
-		interceptor.UnaryAuthInterceptor,
+		interceptors.UnaryAuthInterceptor,
 	))
 
 	// register service
-	auth.RegisterAuthServiceServer(grpcServer, &handlers.AuthServer{DB: db})
+	user.RegisterUserServiceServer(grpcServer, &handlers.AuthServer{DB: db})
 	reflection.Register(grpcServer)
 
 	// start server

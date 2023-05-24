@@ -5,8 +5,8 @@ github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/hariharasudhan-nineleaps/blogger-proto v0.1.0 h1:bhxwf0NUc1VsAGeqcU+iuCSo2tuMKoW18rxOyDf0XCc=
-github.com/hariharasudhan-nineleaps/blogger-proto v0.1.0/go.mod h1:kzMwlTt20nVQ/MpsVYhNg0WnsJWXsJV4CFQQnAm1J7c=
+github.com/hariharasudhan-nineleaps/blogger-proto v0.1.1 h1:WDqG22Odpj+Cf8YTOc9Qv48biWDu38FsVTNn4yxzcoI=
+github.com/hariharasudhan-nineleaps/blogger-proto v0.1.1/go.mod h1:kzMwlTt20nVQ/MpsVYhNg0WnsJWXsJV4CFQQnAm1J7c=
 github.com/hariharasudhan-nineleaps/go-grpc-blogger v0.0.0-20230524113109-df1f412bde2d h1:FvP3fa5aG/wFa4+KrMfkPuEq8WcNt6g8E9aUtyu6D0w=
 github.com/hariharasudhan-nineleaps/go-grpc-blogger v0.0.0-20230524113109-df1f412bde2d/go.mod h1:F1juy2YB+Uj0P7/wzggR15KihUGtcM7UyT1+QZLrvmk=
 github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD/E=

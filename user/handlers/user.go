@@ -3,19 +3,20 @@ package handlers
 import (
 	context "context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/auth"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/models"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/utils"
 	"gorm.io/gorm"
 )
 
 type AuthServer struct {
 	DB *gorm.DB
-	auth.UnimplementedAuthServiceServer
+	user.UnimplementedUserServiceServer
 }
 
 func getNameFromEmail(email string) string {
@@ -37,7 +38,7 @@ func buildUser(email string, plainPassword string) models.User {
 	}
 }
 
-func (a *AuthServer) Login(ctx context.Context, authRequest *auth.AuthRequest) (*auth.AuthResponse, error) {
+func (a *AuthServer) Login(ctx context.Context, authRequest *user.AuthRequest) (*user.AuthResponse, error) {
 
 	// check user already exists
 	var dbUser models.User
@@ -67,10 +68,33 @@ func (a *AuthServer) Login(ctx context.Context, authRequest *auth.AuthRequest) (
 		log.Fatalf("Token generation failed %v", err)
 	}
 
-	return &auth.AuthResponse{
+	return &user.AuthResponse{
 		Id:          dbUser.ID,
 		AccessToken: token,
 		Name:        dbUser.Name,
 		Email:       dbUser.Email,
+	}, nil
+}
+
+func (a *AuthServer) GetUsers(ctx context.Context, authRequest *user.GetUsersRequest) (*user.GetUsersResponse, error) {
+
+	fmt.Print("user service")
+
+	// check user already exists
+	var dbUsers []models.User
+	a.DB.Find(&dbUsers, authRequest.UserIds)
+
+	// map db users to proto-buf user
+	var resUsers []*user.User
+	for _, dbUser := range dbUsers {
+		resUsers = append(resUsers, &user.User{
+			Id:    dbUser.ID,
+			Name:  dbUser.Name,
+			Email: dbUser.Email,
+		})
+	}
+
+	return &user.GetUsersResponse{
+		Users: resUsers,
 	}, nil
 }
