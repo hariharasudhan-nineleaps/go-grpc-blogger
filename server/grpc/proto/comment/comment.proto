@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package comment;
+
+option go_package = "github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/comment";
+
+import "google/protobuf/timestamp.proto";
+import "server/grpc/proto/user/user.proto";
+
+
+enum CommentEntity{
+    BLOG = 0;
+}
+
+message CreateCommentRequest{
+    CommentEntity entity = 1;
+    string entity_id = 2;
+    string comment = 3;
+}
+
+message CreateCommentResponse{
+    string id = 1;
+    CommentEntity entity = 2;
+    string entity_id = 3;
+    string comment = 4;
+}
+
+message CommentRequest{
+    CommentEntity entity = 2;
+    string entity_id = 3;
+    optional uint32 limit = 4;
+    optional string offset = 5;
+}
+
+message Comment{
+    string id = 1;
+    string comment = 2;
+    google.protobuf.Timestamp created_at = 3;
+    user.User user = 4;
+}
+
+message CommentResponseMetadata{
+    uint32 total = 1;
+    optional string prev = 2;
+    optional string next = 3;
+}
+
+message CommentResponse{
+    CommentResponseMetadata metadata = 1;
+    repeated Comment comments = 2;
+}
+
+service CommentService{
+    rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse){}
+    rpc Comments(CommentRequest) returns (CommentResponse){}
+}
+
+
+
