@@ -51,23 +51,25 @@ func (cs *CommentServer) Comments(ctx context.Context, ccRequest *comment.Commen
 	}
 
 	// Fetch comments for blog
-	var dbComments []*models.Comment
+	var dbComments []models.Comment
 	dbCommentsQuery := &models.Comment{
 		Entity:   ccRequest.Entity.String(),
 		EntityID: ccRequest.EntityId,
 	}
-	cs.DB.Where(&dbCommentsQuery).Find(dbComments)
+
+	cs.DB.Where(dbCommentsQuery).Find(&dbComments)
 
 	// Fetch userIds to get user metadata
 	var userIds []string
-	var dbUsers []*models.User
-	var dbUsersMap map[string]*models.User
+	var dbUsers []models.User
+	var dbUsersMap = make(map[string]*models.User, len(userIds))
 	for _, comment := range dbComments {
 		userIds = append(userIds, comment.UserId)
 	}
 	cs.DB.Find(&dbUsers, userIds)
+
 	for _, dbUser := range dbUsers {
-		dbUsersMap[dbUser.ID] = dbUser
+		dbUsersMap[dbUser.ID] = &dbUser
 	}
 
 	var resComments []*comment.Comment
