@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/auth"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/auth"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
 	"gorm.io/gorm"
 )

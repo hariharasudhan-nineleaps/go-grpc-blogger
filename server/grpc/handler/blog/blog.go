@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/blog"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/blog"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/server/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
