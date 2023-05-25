@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthServer struct {
+type UserServer struct {
 	DB *gorm.DB
 	user.UnimplementedUserServiceServer
 }
@@ -38,7 +38,7 @@ func buildUser(email string, plainPassword string) models.User {
 	}
 }
 
-func (a *AuthServer) Login(ctx context.Context, authRequest *user.AuthRequest) (*user.AuthResponse, error) {
+func (a *UserServer) Login(ctx context.Context, authRequest *user.AuthRequest) (*user.AuthResponse, error) {
 
 	// check user already exists
 	var dbUser models.User
@@ -76,10 +76,7 @@ func (a *AuthServer) Login(ctx context.Context, authRequest *user.AuthRequest) (
 	}, nil
 }
 
-func (a *AuthServer) GetUsers(ctx context.Context, authRequest *user.GetUsersRequest) (*user.GetUsersResponse, error) {
-
-	fmt.Print("user service")
-
+func (a *UserServer) GetUsers(ctx context.Context, authRequest *user.GetUsersRequest) (*user.GetUsersResponse, error) {
 	// check user already exists
 	var dbUsers []models.User
 	a.DB.Find(&dbUsers, authRequest.UserIds)
@@ -96,5 +93,21 @@ func (a *AuthServer) GetUsers(ctx context.Context, authRequest *user.GetUsersReq
 
 	return &user.GetUsersResponse{
 		Users: resUsers,
+	}, nil
+}
+
+func (a *UserServer) GetUser(ctx context.Context, authRequest *user.GetUserRequest) (*user.User, error) {
+	var dbUser models.User
+	dbUser.ID = authRequest.UserId
+	result := a.DB.First(&dbUser)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("User with ID %v not exists", authRequest.UserId)
+	}
+
+	return &user.User{
+		Id:    dbUser.ID,
+		Name:  dbUser.Name,
+		Email: dbUser.Email,
 	}, nil
 }

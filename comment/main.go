@@ -9,6 +9,7 @@ import (
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/handlers"
 	interceptors "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/models"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -16,9 +17,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// auth server
-
 func main() {
+
+	// load end
+	cf, err := utils.LoadConfig(".")
+	if err != nil {
+		log.Fatalf("Unable to connect server %v", err)
+	}
 
 	// dependencies
 	db, err := gorm.Open(sqlite.Open("user.db"), &gorm.Config{})
@@ -28,7 +33,7 @@ func main() {
 	db.AutoMigrate(&models.Comment{})
 
 	// listen to incoming requests
-	lis, err := net.Listen("tcp", "localhost:3003")
+	lis, err := net.Listen("tcp", cf.ServerEndpoint)
 	if err != nil {
 		log.Fatalf("Unable to connect server %v", err)
 	}
@@ -39,7 +44,7 @@ func main() {
 	))
 
 	// user grpc client
-	conn, err := grpc.Dial("localhost:3001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(cf.UserServiceEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Unable to connect user service %v", err)
 	}

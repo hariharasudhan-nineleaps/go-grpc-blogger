@@ -8,6 +8,7 @@ import (
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/handlers"
 	interceptors "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/models"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/sqlite"
@@ -18,6 +19,12 @@ import (
 
 func main() {
 
+	// load env
+	cf, err := utils.LoadConfig(".")
+	if err != nil {
+		log.Fatalf("Unable to connect server %v", err)
+	}
+
 	// dependencies
 	db, err := gorm.Open(sqlite.Open("user.db"), &gorm.Config{})
 	if err != nil {
@@ -26,7 +33,7 @@ func main() {
 	db.AutoMigrate(&models.User{})
 
 	// listen to incoming requests
-	lis, err := net.Listen("tcp", "localhost:3001")
+	lis, err := net.Listen("tcp", cf.ServerEndpoint)
 	if err != nil {
 		log.Fatalf("Unable to connect server %v", err)
 	}
@@ -37,7 +44,7 @@ func main() {
 	))
 
 	// register service
-	user.RegisterUserServiceServer(grpcServer, &handlers.AuthServer{DB: db})
+	user.RegisterUserServiceServer(grpcServer, &handlers.UserServer{DB: db})
 	reflection.Register(grpcServer)
 
 	// start server
