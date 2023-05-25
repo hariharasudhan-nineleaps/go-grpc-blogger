@@ -1,4 +1,4 @@
-package blog
+package handlers
 
 import (
 	"context"
@@ -7,22 +7,36 @@ import (
 
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/models"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/utils"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
 type BlogServer struct {
 	blog.UnimplementedBlogServiceServer
-	DB *gorm.DB
+	DB                *gorm.DB
+	UserServiceClient user.UserServiceClient
 }
 
 func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlogRequest) (*blog.CreateBlogResponse, error) {
-	userId, ok := ctx.Value("userId").(string)
+	userId, userIdOk := ctx.Value("userId").(string)
+	userToken, userTokenOk := ctx.Value("userToken").(string)
+	if !userIdOk || !userTokenOk {
+		return nil, fmt.Errorf("Invalid userId or userToken")
+	}
 
-	if !ok {
-		return nil, fmt.Errorf("Invalid userId")
+	md := metadata.New(map[string]string{
+		"authorization": fmt.Sprintf("Bearer %v", userToken),
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	resUser, err := bs.UserServiceClient.GetUser(ctx, &user.GetUserRequest{
+		UserId: userId,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("User service call failed %v", err)
 	}
 
 	blogToSave := &models.Blog{
@@ -39,25 +53,13 @@ func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlog
 		return nil, result.Error
 	}
 
-	var author models.User
-	author.ID = blogToSave.AuthorId
-
-	authorResult := bs.DB.First(&author)
-	if authorResult.Error != nil {
-		return nil, authorResult.Error
-	}
-
 	return &blog.CreateBlogResponse{
 		Id:          blogToSave.ID,
 		Title:       blogToSave.Title,
 		Description: blogToSave.Description,
 		Category:    cbRequest.Category,
 		Tags:        strings.Split(blogToSave.Tags, ","),
-		Author: &user.User{
-			Id:    blogToSave.AuthorId,
-			Name:  author.Name,
-			Email: author.Email,
-		},
+		Author:      resUser,
 	}, nil
 }
 

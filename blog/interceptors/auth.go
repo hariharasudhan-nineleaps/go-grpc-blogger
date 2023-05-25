@@ -1,11 +1,12 @@
-package interceptor
+package interceptors
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -19,7 +20,7 @@ func UnaryAuthInterceptor(
 	handler grpc.UnaryHandler,
 ) (interface{}, error) {
 	// Ignore login route from auth
-	if info.FullMethod == "/auth.AuthService/Login" {
+	if info.FullMethod == "/user.UserService/Login" {
 		log.Println("--> Skipping auth for method: ", info.FullMethod)
 		return handler(ctx, req)
 	}
@@ -55,7 +56,11 @@ func UnaryAuthInterceptor(
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "Unauthenticated -> Invalid token (userId)!")
 	}
-	ctx = context.WithValue(ctx, "userId", userId.(string))
 
+	// set context
+	ctx = context.WithValue(ctx, "userId", userId.(string))
+	ctx = context.WithValue(ctx, "userToken", token)
+
+	fmt.Println("[Blog Service]===> AUTH - SUCCESS")
 	return handler(ctx, req)
 }

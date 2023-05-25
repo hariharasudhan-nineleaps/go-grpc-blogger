@@ -1,4 +1,4 @@
-package comment
+package handlers
 
 import (
 	"context"
@@ -6,15 +6,17 @@ import (
 
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/comment"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/models"
-	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/utils"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/models"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/comment/utils"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
 type CommentServer struct {
 	comment.UnimplementedCommentServiceServer
-	DB *gorm.DB
+	DB                *gorm.DB
+	UserServiceClient user.UserServiceClient
 }
 
 func (cs *CommentServer) CreateComment(ctx context.Context, ccRequest *comment.CreateCommentRequest) (*comment.CreateCommentResponse, error) {
@@ -45,9 +47,10 @@ func (cs *CommentServer) CreateComment(ctx context.Context, ccRequest *comment.C
 }
 
 func (cs *CommentServer) Comments(ctx context.Context, ccRequest *comment.CommentRequest) (*comment.CommentResponse, error) {
-	_, ok := ctx.Value("userId").(string)
+
+	userToken, ok := ctx.Value("userToken").(string)
 	if !ok {
-		return nil, fmt.Errorf("Invalid userId")
+		return nil, fmt.Errorf("Invalid token")
 	}
 
 	// Fetch comments for blog
@@ -56,36 +59,47 @@ func (cs *CommentServer) Comments(ctx context.Context, ccRequest *comment.Commen
 		Entity:   ccRequest.Entity.String(),
 		EntityID: ccRequest.EntityId,
 	}
-
 	cs.DB.Where(dbCommentsQuery).Find(&dbComments)
 
-	// Fetch userIds to get user metadata
+	// Fetch users metadata from userID's
 	var userIds []string
-	var dbUsers []models.User
-	var dbUsersMap = make(map[string]*models.User, len(userIds))
 	for _, comment := range dbComments {
 		userIds = append(userIds, comment.UserId)
 	}
-	cs.DB.Find(&dbUsers, userIds)
 
-	for _, dbUser := range dbUsers {
-		dbUsersMap[dbUser.ID] = &dbUser
+	md := metadata.New(map[string]string{
+		"authorization": fmt.Sprintf("Bearer %v", userToken),
+	})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	usersResponse, err := cs.UserServiceClient.GetUsers(ctx, &user.GetUsersRequest{
+		UserIds: userIds,
+	})
+	if err != nil {
+		fmt.Print(err)
+		return nil, fmt.Errorf("Error from userService %v", err)
+	}
+	usersMap := make(map[string]user.User, len(userIds))
+
+	for _, resUser := range usersResponse.Users {
+		usersMap[resUser.Id] = *resUser
 	}
 
 	var resComments []*comment.Comment
 	for _, commentItem := range dbComments {
-		userItem := dbUsersMap[commentItem.UserId]
+		userItem := usersMap[commentItem.UserId]
+		fmt.Println("userItem", userItem)
 		resComments = append(resComments, &comment.Comment{
 			Id:        commentItem.ID,
 			Comment:   commentItem.Comment,
 			CreatedAt: timestamppb.New(commentItem.CreatedAt),
 			User: &user.User{
-				Id:    userItem.ID,
+				Id:    userItem.Id,
 				Name:  userItem.Name,
 				Email: userItem.Email,
 			},
 		})
 	}
+	fmt.Println("resComments")
 
 	return &comment.CommentResponse{
 		Metadata: &comment.CommentResponseMetadata{
