@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"log"
 	"net"
 
@@ -11,7 +14,7 @@ import (
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/utils"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -33,6 +36,33 @@ func main() {
 	}
 	db.AutoMigrate(&models.Blog{})
 
+	// Load Client Certificates
+	clientCertificate, err := tls.LoadX509KeyPair("client.pem", "client.key")
+	if err != nil {
+		log.Fatalf("Failed to load client certificate and key. %s.", err)
+	}
+
+	// Load CA Certificate
+	trustedCertificate, err := ioutil.ReadFile("cacert.pem")
+	if err != nil {
+		log.Fatalf("Failed to load CA certificate. %s.", err)
+	}
+
+	// Put the CA certificate to certificate pool
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(trustedCertificate) {
+		log.Fatalf("Failed to load CA certificate to pool. %s.", err)
+	}
+
+	// Create the TLS configuration
+	tlsConfig := tls.Config{
+		Certificates: []tls.Certificate{clientCertificate},
+		RootCAs:      certPool,
+		MinVersion:   tls.VersionTLS13,
+		MaxVersion:   tls.VersionTLS13,
+	}
+	cred := credentials.NewTLS(&tlsConfig)
+
 	// listen to incoming requests
 	lis, err := net.Listen("tcp", cf.ServerEndpoint)
 	if err != nil {
@@ -45,7 +75,7 @@ func main() {
 	))
 
 	// user grpc client
-	conn, err := grpc.Dial(cf.UserServiceEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(cf.UserServiceEndpoint, grpc.WithTransportCredentials(cred))
 	if err != nil {
 		log.Fatalf("Unable to connect user service %v", err)
 	}

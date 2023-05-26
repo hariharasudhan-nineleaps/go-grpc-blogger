@@ -74,6 +74,7 @@ func (cs *CommentServer) Comments(ctx context.Context, ccRequest *comment.Commen
 	usersResponse, err := cs.UserServiceClient.GetUsers(ctx, &user.GetUsersRequest{
 		UserIds: userIds,
 	})
+	fmt.Println(err)
 	if err != nil {
 		fmt.Print(err)
 		return nil, fmt.Errorf("Error from userService %v", err)
