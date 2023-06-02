@@ -6,11 +6,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/activity"
 	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
 )
 
-type BlogAsyncHandler struct {
+type BlogActivityAsyncHandler struct {
+	RDB *redis.Client
+}
+
+type BlogActivityServerHandler struct {
+	activity.UnimplementedActivityServiceServer
 	RDB *redis.Client
 }
 
@@ -19,7 +25,7 @@ type BlogViewPayload struct {
 	UserId string `json:"userId"`
 }
 
-func (bh *BlogAsyncHandler) HandleMessage(msg *kafka.Message) {
+func (bh *BlogActivityAsyncHandler) HandleMessage(msg *kafka.Message) {
 	var msgType string
 	for _, header := range msg.Headers {
 		if header.Key == "type" {
@@ -36,7 +42,7 @@ func (bh *BlogAsyncHandler) HandleMessage(msg *kafka.Message) {
 	}
 }
 
-func (bh *BlogAsyncHandler) handleBlogView(msg *kafka.Message) {
+func (bh *BlogActivityAsyncHandler) handleBlogView(msg *kafka.Message) {
 	blogViewPayload := &BlogViewPayload{}
 	uerr := json.Unmarshal(msg.Value, &blogViewPayload)
 	if uerr != nil {
@@ -47,4 +53,26 @@ func (bh *BlogAsyncHandler) handleBlogView(msg *kafka.Message) {
 	if rerr != nil {
 		log.Fatalf("Unable to write to redis %v", rerr)
 	}
+}
+
+func (bh *BlogActivityServerHandler) MostViewedBlogIds(ctx context.Context, mvRequest *activity.MostViewedBlogIdsRequest) (*activity.MostViewedBlogIdsResponse, error) {
+	values, err := bh.RDB.ZRevRangeByScoreWithScores(context.Background(), "blog_views", &redis.ZRangeBy{
+		Min:    "-inf",
+		Max:    "+inf",
+		Offset: 0,
+		Count:  10,
+	}).Result()
+
+	var blogIds []string
+	for _, blogId := range values {
+		blogIds = append(blogIds, blogId.Member.(string))
+	}
+
+	if err != nil {
+		log.Fatalf("Unable to fetch top blogs %v", err)
+	}
+
+	return &activity.MostViewedBlogIdsResponse{
+		BlogIds: blogIds,
+	}, nil
 }

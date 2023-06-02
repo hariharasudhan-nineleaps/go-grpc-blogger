@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/activity"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/handlers"
@@ -17,6 +18,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -87,16 +89,23 @@ func main() {
 	))
 
 	// user grpc client
-	conn, err := grpc.Dial(cf.UserServiceEndpoint, grpc.WithTransportCredentials(cred))
-	if err != nil {
-		log.Fatalf("Unable to connect user service %v", err)
+	uconn, uerr := grpc.Dial(cf.UserServiceEndpoint, grpc.WithTransportCredentials(cred))
+	if uerr != nil {
+		log.Fatalf("Unable to connect user service %v", uerr)
 	}
-	defer conn.Close()
+	defer uconn.Close()
+	userServiceClient := user.NewUserServiceClient(uconn)
 
-	userServiceClient := user.NewUserServiceClient(conn)
+	// activity grpc client
+	aconn, aerr := grpc.Dial(cf.ActivityServiceEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if aerr != nil {
+		log.Fatalf("Unable to connect activity service %v", aerr)
+	}
+	defer aconn.Close()
+	activityServiceClient := activity.NewActivityServiceClient(aconn)
 
 	// register service
-	blog.RegisterBlogServiceServer(grpcServer, &handlers.BlogServer{DB: db, UserServiceClient: userServiceClient, KafkaConn: kafkaConn})
+	blog.RegisterBlogServiceServer(grpcServer, &handlers.BlogServer{DB: db, UserServiceClient: userServiceClient, KafkaConn: kafkaConn, ActivityServiceClient: activityServiceClient})
 	reflection.Register(grpcServer)
 
 	// start server

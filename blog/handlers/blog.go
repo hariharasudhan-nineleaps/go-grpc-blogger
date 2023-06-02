@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/activity"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/models"
@@ -19,9 +20,10 @@ import (
 
 type BlogServer struct {
 	blog.UnimplementedBlogServiceServer
-	DB                *gorm.DB
-	UserServiceClient user.UserServiceClient
-	KafkaConn         *kafka.Conn
+	DB                    *gorm.DB
+	KafkaConn             *kafka.Conn
+	UserServiceClient     user.UserServiceClient
+	ActivityServiceClient activity.ActivityServiceClient
 }
 
 type BlogViewPayload struct {
@@ -158,4 +160,44 @@ func (bs *BlogServer) ViewBlog(ctx context.Context, vR *blog.ViewBlogRequest) (*
 	}
 
 	return &blog.ViewBlogResponse{}, nil
+}
+
+func (bs *BlogServer) MostViewedBlogs(ctx context.Context, mvBReq *blog.MostViewedBlogsRequest) (*blog.MostViewedBlogsResponse, error) {
+	_, userIdOk := ctx.Value("userId").(string)
+	userToken, userTokenOk := ctx.Value("userToken").(string)
+	if !userIdOk || !userTokenOk {
+		return nil, fmt.Errorf("Invalid userId or userToken")
+	}
+
+	md := metadata.New(map[string]string{
+		"authorization": fmt.Sprintf("Bearer %v", userToken),
+	})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	ares, aerr := bs.ActivityServiceClient.MostViewedBlogIds(ctx, &activity.MostViewedBlogIdsRequest{})
+	if aerr != nil {
+		log.Fatalf("Activity service call failed %v", aerr)
+	}
+	blogIds := ares.BlogIds
+	var blogs []models.Blog
+	bs.DB.Find(&blogs, blogIds)
+
+	var resBlogs []*blog.UserBlog
+	for _, blogItem := range blogs {
+		resBlogs = append(resBlogs, &blog.UserBlog{
+			Id:          blogItem.ID,
+			Title:       blogItem.Title,
+			Description: blogItem.Description,
+			Category:    blog.BlogCategory(blog.BlogCategory_value[blogItem.Category]),
+			Tags:        strings.Split(blogItem.Tags, ","),
+			CreatedAt:   timestamppb.New(blogItem.CreatedAt),
+		})
+	}
+
+	return &blog.MostViewedBlogsResponse{
+		Metadata: &blog.MostViewedBlogsResponseMetadata{
+			Total: uint32(len(resBlogs)),
+		},
+		Blogs: resBlogs,
+	}, nil
 }
