@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/blog"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/utils"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
@@ -18,6 +21,12 @@ type BlogServer struct {
 	blog.UnimplementedBlogServiceServer
 	DB                *gorm.DB
 	UserServiceClient user.UserServiceClient
+	KafkaConn         *kafka.Conn
+}
+
+type BlogViewPayload struct {
+	BlogId string `json:"blogId"`
+	UserId string `json:"userId"`
 }
 
 func (bs *BlogServer) CreateBlog(ctx context.Context, cbRequest *blog.CreateBlogRequest) (*blog.CreateBlogResponse, error) {
@@ -114,4 +123,39 @@ func (bs *BlogServer) GetUserBlog(ctx context.Context, gubRequest *blog.GetUserB
 		Tags:        strings.Split(blogItem.Tags, ","),
 		CreatedAt:   timestamppb.New(blogItem.CreatedAt),
 	}, nil
+}
+
+func (bs *BlogServer) ViewBlog(ctx context.Context, vR *blog.ViewBlogRequest) (*blog.ViewBlogResponse, error) {
+	// check user in ctx
+	userId, ok := ctx.Value("userId").(string)
+	if !ok {
+		return nil, fmt.Errorf("Invalid userId")
+	}
+
+	// check blog with ID exists
+	var blogItem models.Blog
+	blogItem.ID = vR.BlogId
+	res := bs.DB.First(&blogItem)
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("Invalid blog Id %v", vR.BlogId)
+	}
+
+	// write to kafka
+	blogViewJson, bJsonerr := json.Marshal(BlogViewPayload{
+		BlogId: vR.BlogId,
+		UserId: userId,
+	})
+	if bJsonerr != nil {
+		log.Fatalf("Unable to create json %v", bJsonerr)
+	}
+
+	_, fWriteMsgerr := bs.KafkaConn.WriteMessages(kafka.Message{
+		Headers: []kafka.Header{{Key: "type", Value: []byte("BLOG_VIEW")}},
+		Value:   blogViewJson,
+	})
+	if fWriteMsgerr != nil {
+		log.Fatalf("Unable to send message to kafka %v", fWriteMsgerr)
+	}
+
+	return &blog.ViewBlogResponse{}, nil
 }

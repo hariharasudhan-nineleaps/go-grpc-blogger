@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 	interceptors "github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/blog/utils"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -35,6 +37,16 @@ func main() {
 		panic("failed to connect database")
 	}
 	db.AutoMigrate(&models.Blog{})
+
+	// kafka
+	const (
+		topic     = "blog_view"
+		partition = 0
+	)
+	kafkaConn, err := kafka.DialLeader(context.Background(), "tcp", cf.KafkaEndpoint, topic, partition)
+	if err != nil {
+		log.Fatalf("Unable to connect with kafka %v", err)
+	}
 
 	// Load Client Certificates
 	clientCertificate, err := tls.LoadX509KeyPair("client.pem", "client.key")
@@ -84,7 +96,7 @@ func main() {
 	userServiceClient := user.NewUserServiceClient(conn)
 
 	// register service
-	blog.RegisterBlogServiceServer(grpcServer, &handlers.BlogServer{DB: db, UserServiceClient: userServiceClient})
+	blog.RegisterBlogServiceServer(grpcServer, &handlers.BlogServer{DB: db, UserServiceClient: userServiceClient, KafkaConn: kafkaConn})
 	reflection.Register(grpcServer)
 
 	// start server

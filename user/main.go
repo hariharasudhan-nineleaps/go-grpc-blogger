@@ -10,6 +10,7 @@ import (
 
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	handlers "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/handlers"
+	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/interceptors"
 	models "github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/utils"
 	"google.golang.org/grpc"
@@ -70,20 +71,15 @@ func main() {
 	}
 
 	// server create
-	// grpcServer := grpc.NewServer(grpc.Creds(cred), grpc.UnaryInterceptor(
-	// 	interceptors.UnaryAuthInterceptor,
-	// ))
-	grpcServer := grpc.NewServer(grpc.Creds(cred))
+	grpcServer := grpc.NewServer(grpc.Creds(cred), grpc.UnaryInterceptor(interceptors.UnaryAuthInterceptor))
 
 	// register service
 	user.RegisterUserServiceServer(grpcServer, &handlers.UserServer{DB: db})
 	reflection.Register(grpcServer)
 
 	// start server
+	fmt.Print("hahahha")
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
-	} else {
-		fmt.Printf("Server started: %v", cf.ServerEndpoint)
 	}
-
 }
