@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/auth"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -13,7 +14,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func UnaryAuthInterceptor(
+type Interceptor struct {
+	AuthServiceClient auth.AuthServiceClient
+}
+
+func (itcp *Interceptor) UnaryAuthInterceptor(
 	ctx context.Context,
 	req interface{},
 	info *grpc.UnaryServerInfo,
@@ -49,7 +54,15 @@ func UnaryAuthInterceptor(
 	}
 
 	// get cliams from token
-	claims, err := utils.VerifyToken(token, "secret")
+	accessToken, accessTokenErr := itcp.AuthServiceClient.VerifyToken(context.Background(), &auth.VerifyTokenRequest{
+		OpaqueToken: token,
+	})
+	if accessTokenErr != nil {
+		log.Println("-->Auth token verification failed in auth service", info.FullMethod)
+		return nil, status.Errorf(codes.Unauthenticated, "Unauthenticated")
+	}
+
+	claims, err := utils.VerifyToken(accessToken.AccessToken, "secret")
 	if err != nil {
 		log.Println("--> Unverified auth token", info.FullMethod)
 		return nil, status.Errorf(codes.Unauthenticated, "Unauthenticated -> Invalid token!")

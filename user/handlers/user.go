@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/auth"
 	"github.com/hariharasudhan-nineleaps/blogger-proto/grpc/proto/user"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/models"
 	"github.com/hariharasudhan-nineleaps/go-grpc-blogger/user/utils"
@@ -15,7 +15,8 @@ import (
 )
 
 type UserServer struct {
-	DB *gorm.DB
+	DB                *gorm.DB
+	AuthServiceClient auth.AuthServiceClient
 	user.UnimplementedUserServiceServer
 }
 
@@ -59,18 +60,18 @@ func (a *UserServer) Login(ctx context.Context, authRequest *user.AuthRequest) (
 		log.Printf("record with email %v found", authRequest.Email)
 	}
 
-	token, err := utils.GenerateToken(&jwt.MapClaims{
-		"id":    dbUser.ID,
-		"name":  dbUser.Name,
-		"email": dbUser.Email,
-	}, "secret")
+	token, err := a.AuthServiceClient.GenerateToken(context.Background(), &auth.GenerateTokenRequest{
+		Email:  dbUser.Email,
+		UserId: dbUser.Email,
+		Name:   dbUser.Name,
+	})
 	if err != nil {
 		log.Fatalf("Token generation failed %v", err)
 	}
 
 	return &user.AuthResponse{
 		Id:          dbUser.ID,
-		AccessToken: token,
+		AccessToken: token.OpaqueToken,
 		Name:        dbUser.Name,
 		Email:       dbUser.Email,
 	}, nil
